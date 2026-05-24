@@ -1,0 +1,1764 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PES6 Player Team Editor</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --panel: #ffffff;
+      --ink: #1c2529;
+      --muted: #627075;
+      --line: #d9e0e3;
+      --accent: #0f766e;
+      --accent-2: #1d4ed8;
+      --warn: #9a3412;
+      --soft: #e7f4f2;
+      --shadow: 0 12px 28px rgba(28, 37, 41, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 8px 11px;
+      cursor: pointer;
+      min-height: 36px;
+    }
+
+    button:hover { border-color: var(--accent); }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: white;
+      color: var(--ink);
+      padding: 7px 9px;
+      min-height: 34px;
+    }
+
+    input[type="checkbox"] {
+      width: 17px;
+      min-height: 17px;
+      accent-color: var(--accent);
+    }
+
+    input[type="range"] {
+      padding: 0;
+      accent-color: var(--accent);
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      background: #1f2a2e;
+      color: white;
+      border-bottom: 4px solid var(--accent);
+    }
+
+    .topbar {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .toolbar input[type="file"] {
+      display: none;
+    }
+
+    .main {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 18px 20px 24px;
+      display: grid;
+      grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .side {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: calc(100vh - 105px);
+    }
+
+    .file-meta {
+      padding: 13px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 6px;
+    }
+
+    .file-name {
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .player-list {
+      overflow: auto;
+      padding: 8px;
+    }
+
+    .player-row {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+      margin: 0 0 4px;
+      padding: 8px;
+    }
+
+    .player-row.active {
+      background: var(--soft);
+      border-color: #9bd4cc;
+    }
+
+    .index {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e9edf0;
+      color: #38464b;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .editor {
+      min-height: calc(100vh - 105px);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .editor-head {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .editor-title {
+      font-size: 18px;
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 7px 10px;
+      min-height: 34px;
+    }
+
+    .tab.active {
+      background: #e8eefb;
+      border-color: #9db6f4;
+      color: var(--accent-2);
+      font-weight: 650;
+    }
+
+    .workarea {
+      overflow: auto;
+      padding: 14px;
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .stat-field {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px;
+      display: grid;
+      gap: 7px;
+      background: #fbfcfc;
+    }
+
+    .stat-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 54px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .stat-name {
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .stat-value {
+      text-align: right;
+    }
+
+    .checks {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+      gap: 8px;
+    }
+
+    .profile-layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .profile-controls {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfc;
+    }
+
+    .profile-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .range-pill {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 8px;
+      display: grid;
+      gap: 3px;
+    }
+
+    .range-pill strong {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .check {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fbfcfc;
+      min-height: 38px;
+    }
+
+    .hex {
+      width: 100%;
+      min-height: 270px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: 12px Consolas, "Courier New", monospace;
+      line-height: 1.5;
+      color: #172126;
+      background: #fbfcfc;
+    }
+
+    .empty {
+      min-height: calc(100vh - 105px);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .warn {
+      color: var(--warn);
+      font-weight: 650;
+    }
+
+    @media (max-width: 840px) {
+      .topbar, .editor-head {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side, .editor {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="topbar">
+        <h1>PES6 Editor de Jogador e Time</h1>
+        <div class="toolbar">
+          <label>
+            <input id="fileInput" type="file" accept=".plrv,.tmrv">
+            <button id="openButton" type="button">Abrir</button>
+          </label>
+          <button id="newButton" type="button">Novo</button>
+          <label>
+            <input id="sourceFileInput" type="file" accept=".plrv,.tmrv">
+            <button id="openSourceButton" type="button">Abrir origem</button>
+          </label>
+          <button id="saveButton" class="primary" type="button" disabled>Baixar arquivo</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <aside class="panel side">
+        <div class="file-meta">
+          <div id="fileName" class="file-name">Nenhum arquivo aberto</div>
+          <div id="fileInfo" class="muted">.plrv ou .tmrv</div>
+        </div>
+        <div id="playerList" class="player-list"></div>
+      </aside>
+
+      <section class="panel editor">
+        <div class="editor-head">
+          <div>
+            <div id="editorTitle" class="editor-title">Abra um arquivo</div>
+            <div id="editorMeta" class="muted">Os arquivos são editados localmente no navegador.</div>
+          </div>
+          <div id="tabs" class="tabs"></div>
+        </div>
+        <div id="workarea" class="workarea">
+          <div class="empty">Selecione um arquivo exportado pelo PES 6 Editor.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const RECORD_SIZE = 124;
+    const STAT_BASE = 48;
+
+    const STATS = {
+      general: [
+        ["height", "Altura", 1, 41, 0, 63, 148, 211],
+        ["weight", "Peso", 0, 41, 8, 127, 0, 127],
+        ["age", "Idade", 2, 65, 9, 31, 15, 46],
+        ["nationality", "Nacionalidade", 3, 65, 0, 255, 0, 105],
+        ["foot", "Pe", 4, 5, 0, 1, 0, 1],
+        ["favSide", "Lado favorito", 0, 33, 14, 3, 0, 3],
+        ["wfa", "Pe ruim precisao", 5, 33, 11, 7, 1, 8],
+        ["wff", "Pe ruim frequencia", 5, 33, 3, 7, 1, 8],
+        ["injury", "Resistencia lesao", 6, 33, 6, 3, 0, 2],
+        ["consistency", "Regularidade", 5, 33, 0, 7, 1, 8],
+        ["condition", "Condicao", 5, 33, 8, 7, 1, 8],
+        ["regPos", "Posicao registrada", 0, 6, 4, 15, 0, 12]
+      ],
+      abilities: [
+        ["attack", "Ataque", 0, 7, 0, 127, 0, 99],
+        ["defence", "Defesa", 0, 8, 0, 127, 0, 99],
+        ["balance", "Equilibrio", 0, 9, 0, 127, 0, 99],
+        ["stamina", "Resistencia", 0, 10, 0, 127, 0, 99],
+        ["speed", "Velocidade", 0, 11, 0, 127, 0, 99],
+        ["accel", "Aceleracao", 0, 12, 0, 127, 0, 99],
+        ["response", "Resposta", 0, 13, 0, 127, 0, 99],
+        ["agility", "Agilidade", 0, 14, 0, 127, 0, 99],
+        ["dribAcc", "Drible precisao", 0, 15, 0, 127, 0, 99],
+        ["dribSpe", "Drible velocidade", 0, 16, 0, 127, 0, 99],
+        ["sPassAcc", "Passe curto precisao", 0, 17, 0, 127, 0, 99],
+        ["sPassSpe", "Passe curto velocidade", 0, 18, 0, 127, 0, 99],
+        ["lPassAcc", "Passe longo precisao", 0, 19, 0, 127, 0, 99],
+        ["lPassSpe", "Passe longo velocidade", 0, 20, 0, 127, 0, 99],
+        ["shotAcc", "Chute precisao", 0, 21, 0, 127, 0, 99],
+        ["shotPow", "Chute potencia", 0, 22, 0, 127, 0, 99],
+        ["shotTec", "Chute tecnica", 0, 23, 0, 127, 0, 99],
+        ["fk", "Falta precisao", 0, 24, 0, 127, 0, 99],
+        ["curling", "Efeito", 0, 25, 0, 127, 0, 99],
+        ["heading", "Cabecada", 0, 26, 0, 127, 0, 99],
+        ["jump", "Salto", 0, 27, 0, 127, 0, 99],
+        ["team", "Trabalho equipe", 0, 28, 0, 127, 0, 99],
+        ["tech", "Tecnica", 0, 29, 0, 127, 0, 99],
+        ["aggress", "Agressividade", 0, 30, 0, 127, 0, 99],
+        ["mental", "Mentalidade", 0, 31, 0, 127, 0, 99],
+        ["gkAbil", "Goleiro", 0, 32, 0, 127, 0, 99]
+      ],
+      positions: [
+        ["gk", "GK", 0, 7, 7, 1], ["cwp", "CWP", 0, 7, 15, 1],
+        ["cbt", "CBT", 0, 9, 7, 1], ["sb", "SB", 0, 9, 15, 1],
+        ["dm", "DM", 0, 11, 7, 1], ["wb", "WB", 0, 11, 15, 1],
+        ["cm", "CM", 0, 13, 7, 1], ["sm", "SM", 0, 13, 15, 1],
+        ["am", "AM", 0, 15, 7, 1], ["wg", "WG", 0, 15, 15, 1],
+        ["ss", "SS", 0, 17, 7, 1], ["cf", "CF", 0, 17, 15, 1]
+      ],
+      special: [
+        ["dribbling", "Dribbling", 0, 21, 7, 1], ["tacticalDrib", "Tactical Drib", 0, 21, 15, 1],
+        ["positioning", "Positioning", 0, 23, 7, 1], ["reaction", "Reaction", 0, 23, 15, 1],
+        ["playmaking", "Playmaking", 0, 25, 7, 1], ["passing", "Passing", 0, 25, 15, 1],
+        ["scoring", "Scoring", 0, 27, 7, 1], ["oneOneScoring", "1-1 Scoring", 0, 27, 15, 1],
+        ["post", "Post", 0, 29, 7, 1], ["linePosition", "Line Position", 0, 29, 15, 1],
+        ["midShooting", "Mid shooting", 0, 31, 7, 1], ["side", "Side", 0, 31, 15, 1],
+        ["centre", "Centre", 0, 19, 15, 1], ["penalties", "Penalties", 0, 19, 7, 1],
+        ["oneTPass", "1-T Pass", 0, 35, 0, 1], ["outside", "Outside", 0, 35, 1, 1],
+        ["marking", "Marking", 0, 35, 2, 1], ["sliding", "Sliding", 0, 35, 3, 1],
+        ["cover", "Cover", 0, 35, 4, 1], ["dlControl", "D-L Control", 0, 35, 5, 1],
+        ["penaltyGk", "Penalty GK", 0, 35, 6, 1], ["oneOneGk", "1-on-1 GK", 0, 35, 7, 1],
+        ["longThrow", "Long Throw", 0, 37, 7, 1]
+      ]
+    };
+
+    const POSITIONS = ["GK", "CWP", "CWP", "CBT", "SB", "DM", "WB", "CM", "SM", "AM", "WG", "SS", "CF"];
+    const FOOT = ["R", "L"];
+    const INJURY = ["C", "B", "A"];
+    const SIDE = ["Both/none", "Left", "Right", "Both"];
+    const PROFILE_LEVELS = ["Ruim", "Mediano", "Bom", "Craque", "Diferenciado"];
+    const PROFILE_POSITIONS = ["GK", "CBT", "SB", "DM", "CM", "AM", "WG", "SS", "CF"];
+    const CUSTOM_PROFILE_KEY = "pes6CustomProfiles";
+
+    const STAT_BY_KEY = Object.fromEntries(
+      [...STATS.general, ...STATS.abilities, ...STATS.positions, ...STATS.special].map((stat) => [stat[0], stat])
+    );
+
+    const POSITION_TEMPLATES = {
+      GK: {
+        name: "Goleiro", regPos: 0, positions: ["gk"],
+        focus: ["gkAbil", "response", "jump"],
+        good: ["defence", "balance", "agility", "team"],
+        support: ["stamina", "speed", "accel", "sPassAcc", "lPassAcc"],
+        low: ["attack", "dribAcc", "shotAcc", "shotPow", "shotTec", "aggress"]
+      },
+      CBT: {
+        name: "Zagueiro", regPos: 3, positions: ["cbt"],
+        focus: ["defence", "balance", "heading", "jump"],
+        good: ["response", "stamina", "team", "aggress"],
+        support: ["speed", "accel", "sPassAcc", "lPassAcc", "shotPow"],
+        low: ["attack", "dribSpe", "shotAcc", "fk", "curling"]
+      },
+      SB: {
+        name: "Lateral", regPos: 4, positions: ["sb", "wb"],
+        focus: ["speed", "stamina", "accel", "agility"],
+        good: ["defence", "sPassAcc", "lPassAcc", "team"],
+        support: ["attack", "dribAcc", "dribSpe", "balance", "aggress"],
+        low: ["shotAcc", "shotTec", "gkAbil"]
+      },
+      DM: {
+        name: "Volante", regPos: 5, positions: ["dm", "cm"],
+        focus: ["defence", "stamina", "balance", "team"],
+        good: ["response", "sPassAcc", "lPassAcc", "aggress"],
+        support: ["attack", "speed", "accel", "tech", "shotPow"],
+        low: ["shotAcc", "curling", "gkAbil"]
+      },
+      CM: {
+        name: "Meia central", regPos: 7, positions: ["cm", "dm"],
+        focus: ["sPassAcc", "lPassAcc", "tech", "team"],
+        good: ["stamina", "response", "dribAcc", "balance"],
+        support: ["attack", "defence", "speed", "shotPow", "curling"],
+        low: ["heading", "gkAbil"]
+      },
+      AM: {
+        name: "Meia ofensivo", regPos: 9, positions: ["am", "cm", "ss"],
+        focus: ["attack", "tech", "dribAcc", "sPassAcc"],
+        good: ["agility", "curling", "shotAcc", "team"],
+        support: ["speed", "accel", "lPassAcc", "shotTec", "aggress"],
+        low: ["defence", "heading", "gkAbil"]
+      },
+      WG: {
+        name: "Ponta", regPos: 10, positions: ["wg", "sm"],
+        focus: ["speed", "accel", "dribSpe", "agility"],
+        good: ["attack", "dribAcc", "sPassAcc", "curling"],
+        support: ["shotAcc", "shotPow", "tech", "stamina", "lPassAcc"],
+        low: ["defence", "heading", "gkAbil"]
+      },
+      SS: {
+        name: "Segundo atacante", regPos: 11, positions: ["ss", "cf", "am"],
+        focus: ["attack", "tech", "shotAcc", "dribAcc"],
+        good: ["agility", "speed", "response", "shotTec"],
+        support: ["sPassAcc", "accel", "balance", "curling", "team"],
+        low: ["defence", "gkAbil"]
+      },
+      CF: {
+        name: "Centroavante", regPos: 12, positions: ["cf"],
+        focus: ["attack", "shotAcc", "shotPow", "shotTec", "response"],
+        good: ["balance", "heading", "jump", "aggress"],
+        support: ["speed", "accel", "dribAcc", "tech", "team", "stamina"],
+        low: ["defence", "sPassSpe", "lPassAcc", "gkAbil"]
+      }
+    };
+
+    const LEVEL_RANGES = {
+      Ruim: { low: [30, 45], support: [45, 58], good: [55, 66], focus: [60, 72] },
+      Mediano: { low: [35, 50], support: [55, 68], good: [65, 76], focus: [70, 82] },
+      Bom: { low: [38, 54], support: [62, 76], good: [74, 86], focus: [80, 90] },
+      Craque: { low: [40, 55], support: [70, 84], good: [82, 92], focus: [90, 99] },
+      Diferenciado: { low: [45, 60], support: [76, 88], good: [88, 96], focus: [94, 99] }
+    };
+
+    const DEFAULT_PROFILES = buildDefaultProfiles();
+
+    let state = {
+      fileName: "",
+      ext: "",
+      records: [],
+      selected: 0,
+      tab: "geral",
+      workingProfile: null,
+      sourceName: "",
+      sourceRecords: [],
+      sourceSelected: 0,
+      rosterCapacity: 32
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    $("openButton").addEventListener("click", () => $("fileInput").click());
+    $("newButton").addEventListener("click", createNewTeamFile);
+    $("openSourceButton").addEventListener("click", () => $("sourceFileInput").click());
+    $("fileInput").addEventListener("change", openFile);
+    $("sourceFileInput").addEventListener("change", openSourceFile);
+    $("saveButton").addEventListener("click", downloadFile);
+
+    function openFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const ext = file.name.toLowerCase().endsWith(".tmrv") ? "tmrv" : file.name.toLowerCase().endsWith(".plrv") ? "plrv" : "";
+      const reader = new FileReader();
+      reader.onload = () => {
+        const bytes = new Uint8Array(reader.result);
+        if (!ext || bytes.length < RECORD_SIZE || bytes.length % RECORD_SIZE !== 0) {
+          showError("Arquivo invalido para este editor.");
+          return;
+        }
+        state = {
+          ...state,
+          fileName: file.name,
+          ext,
+          records: splitRecords(bytes),
+          selected: 0,
+          tab: "geral",
+          rosterCapacity: ext === "tmrv" ? Math.max(32, bytes.length / RECORD_SIZE) : 1
+        };
+        $("saveButton").disabled = false;
+        render();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function openSourceFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const ext = file.name.toLowerCase().endsWith(".tmrv") ? "tmrv" : file.name.toLowerCase().endsWith(".plrv") ? "plrv" : "";
+      const reader = new FileReader();
+      reader.onload = () => {
+        const bytes = new Uint8Array(reader.result);
+        if (!ext || bytes.length < RECORD_SIZE || bytes.length % RECORD_SIZE !== 0) {
+          showError("Arquivo de origem invalido.");
+          return;
+        }
+        state.sourceName = file.name;
+        state.sourceRecords = splitRecords(bytes);
+        state.sourceSelected = 0;
+        state.tab = "importar";
+        render();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function createNewTeamFile() {
+      state = {
+        ...state,
+        fileName: "novo_time.tmrv",
+        ext: "tmrv",
+        records: [],
+        selected: 0,
+        tab: "importar",
+        rosterCapacity: 32
+      };
+      $("saveButton").disabled = true;
+      render();
+    }
+
+    function splitRecords(bytes) {
+      const records = [];
+      for (let offset = 0; offset < bytes.length; offset += RECORD_SIZE) {
+        records.push(bytes.slice(offset, offset + RECORD_SIZE));
+      }
+      return records;
+    }
+
+    function render() {
+      $("fileName").textContent = state.fileName || "Nenhum arquivo aberto";
+      const freeSlots = getFreeSlots();
+      $("fileInfo").textContent = state.fileName
+        ? `${state.ext.toUpperCase()} | ${state.records.length}/${state.rosterCapacity} jogador${state.records.length === 1 ? "" : "es"} | ${freeSlots} vaga${freeSlots === 1 ? "" : "s"} livre${freeSlots === 1 ? "" : "s"}`
+        : ".plrv ou .tmrv";
+      renderList();
+      renderTabs();
+      renderEditor();
+    }
+
+    function renderList() {
+      const list = $("playerList");
+      list.innerHTML = "";
+      state.records.forEach((record, index) => {
+        const button = document.createElement("button");
+        button.className = `player-row ${index === state.selected ? "active" : ""}`;
+        button.type = "button";
+        button.innerHTML = `<span class="index">${index + 1}</span><span>${escapeHtml(getPlayerName(record) || "<sem nome>")}</span>`;
+        button.addEventListener("click", () => {
+          state.selected = index;
+          render();
+        });
+        list.appendChild(button);
+      });
+    }
+
+    function renderTabs() {
+      const tabs = [
+        ["geral", "Geral"],
+        ["atributos", "Atributos"],
+        ["importar", "Importar"],
+        ["perfis", "Perfis"],
+        ["posicoes", "Posicoes"],
+        ["especiais", "Especiais"],
+        ["bytes", "Bytes"]
+      ];
+      $("tabs").innerHTML = "";
+      for (const [id, label] of tabs) {
+        const button = document.createElement("button");
+        button.className = `tab ${state.tab === id ? "active" : ""}`;
+        button.type = "button";
+        button.textContent = label;
+        button.addEventListener("click", () => {
+          state.tab = id;
+          render();
+        });
+        $("tabs").appendChild(button);
+      }
+    }
+
+    function renderEditor() {
+      if (!state.records.length) {
+        if (state.tab === "perfis") {
+          $("editorTitle").textContent = "Biblioteca de perfis";
+          $("editorMeta").textContent = "Crie perfis antes de abrir um arquivo.";
+          renderProfiles(null);
+        } else if (state.tab === "importar") {
+          $("editorTitle").textContent = "Importar jogadores";
+          $("editorMeta").textContent = "Carregue uma origem ou prepare dados basicos.";
+          renderImport(null);
+        } else {
+          $("editorTitle").textContent = "Abra um arquivo";
+          $("editorMeta").textContent = "A aba Perfis tambem funciona sem arquivo aberto.";
+          $("workarea").innerHTML = `<div class="empty">Selecione um arquivo exportado pelo PES 6 Editor ou abra a aba Perfis.</div>`;
+        }
+        return;
+      }
+      const record = state.records[state.selected];
+      $("editorTitle").textContent = getPlayerName(record) || `Jogador ${state.selected + 1}`;
+      $("editorMeta").textContent = `${state.selected + 1} de ${state.records.length}`;
+
+      if (state.tab === "geral") renderGeneral(record);
+      if (state.tab === "atributos") renderStats(record, STATS.abilities);
+      if (state.tab === "importar") renderImport(record);
+      if (state.tab === "perfis") renderProfiles(record);
+      if (state.tab === "posicoes") renderChecks(record, STATS.positions);
+      if (state.tab === "especiais") renderChecks(record, STATS.special);
+      if (state.tab === "bytes") renderBytes(record);
+    }
+
+    function renderGeneral(record) {
+      const area = $("workarea");
+      area.innerHTML = `
+        <div class="section">
+          <h2>Identificacao</h2>
+          <div class="grid">
+            <div class="field"><label>Nome</label><input id="nameInput" maxlength="15"></div>
+            <div class="field"><label>Nome na camisa</label><input id="shirtInput" maxlength="15"></div>
+          </div>
+        </div>
+        <div class="section">
+          <h2>Dados gerais</h2>
+          <div id="generalGrid" class="grid"></div>
+        </div>
+      `;
+      $("nameInput").value = getPlayerName(record);
+      $("shirtInput").value = getShirtName(record);
+      $("nameInput").addEventListener("input", (e) => {
+        setPlayerName(record, e.target.value);
+        renderList();
+        $("editorTitle").textContent = getPlayerName(record) || `Jogador ${state.selected + 1}`;
+      });
+      $("shirtInput").addEventListener("input", (e) => setShirtName(record, e.target.value));
+
+      const grid = $("generalGrid");
+      for (const stat of STATS.general) {
+        grid.appendChild(makeField(record, stat));
+      }
+    }
+
+    function renderStats(record, stats) {
+      const area = $("workarea");
+      area.innerHTML = `<div class="section"><h2>Atributos 1-99</h2><div id="statGrid" class="grid"></div></div>`;
+      const grid = $("statGrid");
+      for (const stat of stats) {
+        grid.appendChild(makeField(record, stat, true));
+      }
+    }
+
+    function renderImport(record) {
+      const area = $("workarea");
+      const targetLabel = record ? escapeHtml(getPlayerName(record) || `Jogador ${state.selected + 1}`) : "Nenhum jogador de destino";
+      area.innerHTML = `
+        <div class="section">
+          <h2>Importar de outro arquivo PES6</h2>
+          <div class="profile-layout">
+            <div class="profile-controls">
+              <div class="field">
+                <label>Arquivo de origem</label>
+                <div class="file-name">${escapeHtml(state.sourceName || "Nenhum arquivo de origem aberto")}</div>
+                <div class="muted">${state.sourceRecords.length ? `${state.sourceRecords.length} jogador${state.sourceRecords.length === 1 ? "" : "es"}` : "Use Abrir origem no topo"}</div>
+              </div>
+              <div class="field">
+                <label>Jogador de origem</label>
+                <select id="sourcePlayerSelect"></select>
+              </div>
+              <div class="field">
+                <label>Destino atual</label>
+                <div class="file-name">${targetLabel}</div>
+                <div class="muted">${state.records.length ? `${state.records.length}/${state.rosterCapacity} jogadores | ${getFreeSlots()} vagas livres` : "Abra um arquivo principal para importar"}</div>
+              </div>
+              <div class="field">
+                <label>Capacidade do arquivo principal</label>
+                <select id="rosterCapacity">
+                  <option value="14">14 jogadores</option>
+                  <option value="23">23 jogadores</option>
+                  <option value="32">32 jogadores</option>
+                  <option value="custom">Personalizada</option>
+                </select>
+              </div>
+              <div class="field" id="customCapacityWrap">
+                <label>Capacidade personalizada</label>
+                <input id="customCapacity" type="number" min="1" max="64">
+              </div>
+              <button id="copySourcePlayer" class="primary" type="button">Copiar jogador inteiro</button>
+              <button id="appendSourcePlayer" type="button">Adicionar ao time</button>
+              <button id="removeTargetPlayer" type="button">Remover do time</button>
+              <div id="importStatus" class="muted"></div>
+            </div>
+            <div>
+              <div class="muted">A copia inteira traz nome, aparencia, posicoes, habilidades e todos os atributos do registro de 124 bytes.</div>
+              <div id="sourcePreview" class="profile-preview"></div>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <h2>Dados basicos de jogador real</h2>
+          <div class="grid">
+            <div class="field"><label>Nome</label><input id="realName" maxlength="15" placeholder="Ex: Scholes"></div>
+            <div class="field"><label>Posicao</label><select id="realPosition"></select></div>
+            <div class="field"><label>Idade</label><input id="realAge" type="number" min="15" max="46" placeholder="25"></div>
+            <div class="field"><label>Altura</label><input id="realHeight" type="number" min="148" max="211" placeholder="178"></div>
+            <div class="field"><label>Pe preferido</label><select id="realFoot"><option value="0">Direito</option><option value="1">Esquerdo</option></select></div>
+          </div>
+          <div class="button-row" style="margin-top: 10px;">
+            <button id="applyBasicImport" class="primary" type="button">Aplicar dados basicos</button>
+          </div>
+          <div class="muted" style="margin-top: 8px;">Esta etapa prepara o caminho para importadores de Transfermarkt, PES Master, FIFA Index e SoFIFA.</div>
+        </div>
+        <div class="section">
+          <h2>Importar do site</h2>
+          <div class="profile-layout">
+            <div class="profile-controls">
+              <div class="field">
+                <label>Tipo</label>
+                <select id="siteImportMode">
+                  <option value="team">Importar time</option>
+                  <option value="player">Importar jogador</option>
+                </select>
+              </div>
+              <div class="field site-team-field">
+                <label>Jogadores do time</label>
+                <textarea id="siteTeamText" class="hex" style="min-height: 170px;" placeholder="Um jogador por linha: Nome; Posicao; Idade; Altura; Pe&#10;Ex: Paul Scholes; CM; 28; 170; R"></textarea>
+              </div>
+              <div class="field site-player-field">
+                <label>Nome</label>
+                <input id="sitePlayerName" maxlength="15" placeholder="Ex: Paul Scholes">
+              </div>
+              <div class="grid site-player-field">
+                <div class="field"><label>Posicao</label><select id="sitePlayerPosition"></select></div>
+                <div class="field"><label>Idade</label><input id="sitePlayerAge" type="number" min="15" max="46" placeholder="28"></div>
+                <div class="field"><label>Altura</label><input id="sitePlayerHeight" type="number" min="148" max="211" placeholder="170"></div>
+                <div class="field"><label>Pe</label><select id="sitePlayerFoot"><option value="0">Direito</option><option value="1">Esquerdo</option></select></div>
+              </div>
+              <div class="button-row">
+                <button id="createTempTeam" class="primary site-team-field" type="button">Criar time temporario</button>
+                <button id="addSitePlayer" class="primary site-player-field" type="button">Adicionar jogador</button>
+              </div>
+              <div id="siteImportStatus" class="muted"></div>
+            </div>
+            <div>
+              <div class="muted">Os jogadores criados aqui recebem perfil Mediano da posicao com randomizacao Ousada. Depois voce pode aplicar perfis mais especificos no arquivo principal.</div>
+              <div class="profile-preview">
+                <div class="range-pill"><strong>Formato aceito</strong><span class="muted">Nome; Posicao; Idade; Altura; Pe</span></div>
+                <div class="range-pill"><strong>Posicoes</strong><span class="muted">GK, CBT, SB, DM, CM, AM, WG, SS, CF</span></div>
+                <div class="range-pill"><strong>Pe</strong><span class="muted">R/D/Direito ou L/E/Esquerdo</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const sourceSelect = $("sourcePlayerSelect");
+      if (!state.sourceRecords.length) {
+        const item = document.createElement("option");
+        item.value = "";
+        item.textContent = "Nenhum jogador carregado";
+        sourceSelect.appendChild(item);
+      } else {
+        state.sourceRecords.forEach((sourceRecord, index) => {
+          const item = document.createElement("option");
+          item.value = String(index);
+          item.textContent = `${index + 1}. ${getPlayerName(sourceRecord) || "<sem nome>"}`;
+          sourceSelect.appendChild(item);
+        });
+        sourceSelect.value = String(state.sourceSelected);
+      }
+
+      const realPosition = $("realPosition");
+      PROFILE_POSITIONS.forEach((position) => {
+        const item = document.createElement("option");
+        item.value = position;
+        item.textContent = `${position} - ${POSITION_TEMPLATES[position].name}`;
+      realPosition.appendChild(item);
+      });
+
+      const sitePosition = $("sitePlayerPosition");
+      PROFILE_POSITIONS.forEach((position) => {
+        const item = document.createElement("option");
+        item.value = position;
+        item.textContent = `${position} - ${POSITION_TEMPLATES[position].name}`;
+        sitePosition.appendChild(item);
+      });
+
+      sourceSelect.addEventListener("change", () => {
+        state.sourceSelected = Number(sourceSelect.value || 0);
+        renderSourcePreview();
+      });
+      $("copySourcePlayer").disabled = !record || !state.sourceRecords.length;
+      $("appendSourcePlayer").disabled = state.ext !== "tmrv" || !state.sourceRecords.length || getFreeSlots() <= 0;
+      $("removeTargetPlayer").disabled = state.ext !== "tmrv" || !record || state.records.length <= 1;
+      $("applyBasicImport").disabled = !record;
+      $("copySourcePlayer").addEventListener("click", () => copySourcePlayer(record));
+      $("appendSourcePlayer").addEventListener("click", appendSourcePlayer);
+      $("removeTargetPlayer").addEventListener("click", removeTargetPlayer);
+      $("applyBasicImport").addEventListener("click", () => applyBasicImport(record));
+      $("siteImportMode").addEventListener("change", updateSiteImportMode);
+      $("createTempTeam").addEventListener("click", createTemporaryTeamFromSite);
+      $("addSitePlayer").addEventListener("click", addSitePlayerFromForm);
+      setupCapacityControls();
+      updateSiteImportMode();
+      renderSourcePreview();
+    }
+
+    function renderSourcePreview() {
+      const preview = $("sourcePreview");
+      if (!preview) return;
+      preview.innerHTML = "";
+      const source = state.sourceRecords[state.sourceSelected];
+      if (!source) return;
+      const previewStats = ["attack", "defence", "balance", "stamina", "speed", "sPassAcc", "shotAcc", "tech"];
+      [
+        ["Nome", getPlayerName(source)],
+        ["Camisa", getShirtName(source)],
+        ...previewStats.map((key) => [STAT_BY_KEY[key][1], getDisplayStat(source, STAT_BY_KEY[key])])
+      ].forEach(([label, value]) => {
+        const item = document.createElement("div");
+        item.className = "range-pill";
+        item.innerHTML = `<strong>${escapeHtml(label)}</strong><span class="muted">${escapeHtml(value)}</span>`;
+        preview.appendChild(item);
+      });
+    }
+
+    function copySourcePlayer(record) {
+      const source = state.sourceRecords[state.sourceSelected];
+      if (!record || !source) return;
+      record.set(source);
+      $("importStatus").textContent = "Jogador copiado para o destino atual.";
+      renderList();
+      $("editorTitle").textContent = getPlayerName(record) || `Jogador ${state.selected + 1}`;
+    }
+
+    function appendSourcePlayer() {
+      const source = state.sourceRecords[state.sourceSelected];
+      if (!source) return;
+      if (state.ext !== "tmrv") {
+        $("importStatus").textContent = "Adicionar jogadores esta disponivel para arquivos .tmrv.";
+        return;
+      }
+      if (getFreeSlots() <= 0) {
+        $("importStatus").textContent = "Nao ha vagas livres na capacidade atual.";
+        return;
+      }
+      state.records.push(new Uint8Array(source));
+      state.selected = state.records.length - 1;
+      $("saveButton").disabled = false;
+      $("importStatus").textContent = "Jogador adicionado ao final do arquivo de time.";
+      render();
+    }
+
+    function removeTargetPlayer() {
+      if (state.ext !== "tmrv") return;
+      if (state.records.length <= 1) {
+        $("importStatus").textContent = "O time precisa manter pelo menos um jogador.";
+        return;
+      }
+      const removed = getPlayerName(state.records[state.selected]) || `Jogador ${state.selected + 1}`;
+      state.records.splice(state.selected, 1);
+      state.selected = Math.min(state.selected, state.records.length - 1);
+      if (state.rosterCapacity < state.records.length) state.rosterCapacity = state.records.length;
+      $("saveButton").disabled = state.records.length === 0;
+      render();
+      const status = $("importStatus");
+      if (status) status.textContent = `${removed} removido do arquivo de time.`;
+    }
+
+    function setupCapacityControls() {
+      const select = $("rosterCapacity");
+      const customWrap = $("customCapacityWrap");
+      const customInput = $("customCapacity");
+      if (!select || !customInput) return;
+      const fixed = [14, 23, 32];
+      select.value = fixed.includes(state.rosterCapacity) ? String(state.rosterCapacity) : "custom";
+      customInput.value = state.rosterCapacity;
+      const syncVisibility = () => {
+        customWrap.style.display = select.value === "custom" ? "grid" : "none";
+      };
+      select.addEventListener("change", () => {
+        if (select.value !== "custom") {
+          state.rosterCapacity = Math.max(Number(select.value), state.records.length || 1);
+          customInput.value = state.rosterCapacity;
+          render();
+          return;
+        }
+        syncVisibility();
+      });
+      customInput.addEventListener("input", () => {
+        state.rosterCapacity = clamp(Number(customInput.value), Math.max(1, state.records.length), 64);
+        render();
+      });
+      syncVisibility();
+    }
+
+    function getFreeSlots() {
+      if (!state.records.length) return 0;
+      return Math.max(0, state.rosterCapacity - state.records.length);
+    }
+
+    function applyBasicImport(record) {
+      if (!record) return;
+      const name = $("realName").value.trim();
+      const position = $("realPosition").value;
+      const age = Number($("realAge").value);
+      const height = Number($("realHeight").value);
+      const foot = Number($("realFoot").value);
+      if (name) {
+        setPlayerName(record, name);
+        setShirtName(record, makeShirtName(name));
+      }
+      if (Number.isFinite(age)) setDisplayStat(record, STAT_BY_KEY.age, clamp(age, 15, 46));
+      if (Number.isFinite(height)) setDisplayStat(record, STAT_BY_KEY.height, clamp(height, 148, 211));
+      setDisplayStat(record, STAT_BY_KEY.foot, foot);
+      applyPositionOnly(record, position);
+      $("importStatus").textContent = "Dados basicos aplicados ao destino atual.";
+      renderList();
+      $("editorTitle").textContent = getPlayerName(record) || `Jogador ${state.selected + 1}`;
+    }
+
+    function updateSiteImportMode() {
+      const teamMode = $("siteImportMode")?.value === "team";
+      document.querySelectorAll(".site-team-field").forEach((node) => node.style.display = teamMode ? "grid" : "none");
+      document.querySelectorAll(".site-player-field").forEach((node) => node.style.display = teamMode ? "none" : "grid");
+    }
+
+    function createTemporaryTeamFromSite() {
+      const players = parseSiteTeamText($("siteTeamText").value);
+      if (!players.length) {
+        $("siteImportStatus").textContent = "Cole ao menos um jogador no formato indicado.";
+        return;
+      }
+      state = {
+        ...state,
+        fileName: "time_importado_site.tmrv",
+        ext: "tmrv",
+        records: players.map(createRecordFromBasicData),
+        selected: 0,
+        tab: "importar",
+        rosterCapacity: Math.max(32, players.length)
+      };
+      $("saveButton").disabled = state.records.length === 0;
+      render();
+    }
+
+    function addSitePlayerFromForm() {
+      const data = {
+        name: $("sitePlayerName").value.trim(),
+        position: $("sitePlayerPosition").value,
+        age: Number($("sitePlayerAge").value),
+        height: Number($("sitePlayerHeight").value),
+        foot: Number($("sitePlayerFoot").value)
+      };
+      if (!data.name) {
+        $("siteImportStatus").textContent = "Digite o nome do jogador.";
+        return;
+      }
+      if (!state.fileName || state.ext !== "tmrv") {
+        state.fileName = "novo_time.tmrv";
+        state.ext = "tmrv";
+        state.records = [];
+        state.rosterCapacity = 32;
+      }
+      if (getFreeSlots() <= 0) {
+        $("siteImportStatus").textContent = "Nao ha vagas livres na capacidade atual.";
+        return;
+      }
+      state.records.push(createRecordFromBasicData(data));
+      state.selected = state.records.length - 1;
+      $("saveButton").disabled = false;
+      render();
+    }
+
+    function parseSiteTeamText(text) {
+      return text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const parts = line.split(/[;\t,]/).map((part) => part.trim());
+          return {
+            name: parts[0] || "",
+            position: normalizePosition(parts[1] || "CM"),
+            age: Number(parts[2] || 25),
+            height: Number(parts[3] || 178),
+            foot: normalizeFoot(parts[4] || "R")
+          };
+        })
+        .filter((player) => player.name);
+    }
+
+    function createRecordFromBasicData(data) {
+      const record = new Uint8Array(RECORD_SIZE);
+      const position = normalizePosition(data.position || "CM");
+      const profile = cloneProfile(DEFAULT_PROFILES[position]?.Mediano || DEFAULT_PROFILES.CM.Mediano);
+      Object.entries(profile.ranges).forEach(([key, range]) => {
+        const stat = STAT_BY_KEY[key];
+        if (stat) setDisplayStat(record, stat, randomInRange(range[0], range[1], "wild"));
+      });
+      applyProfilePosition(record, profile);
+      setPlayerName(record, data.name || "Jogador");
+      setShirtName(record, makeShirtName(data.name || "Jogador"));
+      if (Number.isFinite(data.age)) setDisplayStat(record, STAT_BY_KEY.age, clamp(data.age, 15, 46));
+      if (Number.isFinite(data.height)) setDisplayStat(record, STAT_BY_KEY.height, clamp(data.height, 148, 211));
+      setDisplayStat(record, STAT_BY_KEY.foot, Number(data.foot) === 1 ? 1 : 0);
+      return record;
+    }
+
+    function normalizePosition(value) {
+      const normalized = String(value || "").trim().toUpperCase();
+      const map = {
+        CB: "CBT", CBT: "CBT", CWP: "CBT", ZAG: "CBT",
+        RB: "SB", LB: "SB", SB: "SB", WB: "SB", LATERAL: "SB",
+        DMF: "DM", DM: "DM", VOL: "DM",
+        CMF: "CM", CM: "CM", MC: "CM",
+        AMF: "AM", AM: "AM", MEI: "AM",
+        RWF: "WG", LWF: "WG", WF: "WG", WG: "WG", SMF: "WG", PONTA: "WG",
+        SS: "SS", SA: "SS",
+        CF: "CF", CA: "CF", ST: "CF", AT: "CF",
+        GK: "GK", GOL: "GK"
+      };
+      return PROFILE_POSITIONS.includes(normalized) ? normalized : (map[normalized] || "CM");
+    }
+
+    function normalizeFoot(value) {
+      const normalized = String(value || "").trim().toUpperCase();
+      return ["L", "E", "LEFT", "ESQUERDO", "ESQUERDA", "1"].includes(normalized) ? 1 : 0;
+    }
+
+    function applyPositionOnly(record, position) {
+      const template = POSITION_TEMPLATES[position];
+      if (!template) return;
+      setDisplayStat(record, STAT_BY_KEY.regPos, template.regPos);
+      STATS.positions.forEach((stat) => setRawStat(record, stat, 0));
+      template.positions.forEach((key) => {
+        if (STAT_BY_KEY[key]) setRawStat(record, STAT_BY_KEY[key], 1);
+      });
+    }
+
+    function renderProfiles(record) {
+      const customProfiles = loadCustomProfiles();
+      const area = $("workarea");
+      area.innerHTML = `
+        <div class="section">
+          <h2>Perfis de jogador</h2>
+          <div class="profile-layout">
+            <div class="profile-controls">
+          <div class="field">
+            <label>Origem</label>
+            <select id="profileSource">
+                  <option value="default">Padroes do editor</option>
+                  <option value="custom">Meus perfis salvos</option>
+                </select>
+              </div>
+              <div class="field default-only">
+                <label>Posicao</label>
+                <select id="profilePosition"></select>
+              </div>
+              <div class="field default-only">
+                <label>Nivel</label>
+                <select id="profileLevel"></select>
+              </div>
+              <div class="field custom-only">
+                <label>Perfil salvo</label>
+                <select id="customProfile"></select>
+              </div>
+              <div class="field">
+                <label>Randomizacao</label>
+                <select id="profileRandom">
+                  <option value="normal">Normal</option>
+                  <option value="center">Conservadora</option>
+                  <option value="wild">Ousada</option>
+                </select>
+              </div>
+              <div class="button-row player-only">
+                <button id="applyProfile" class="primary" type="button">Aplicar perfil</button>
+                <button id="rerollProfile" type="button">Gerar variacao</button>
+              </div>
+              <div class="field">
+                <label>Salvar perfil exibido</label>
+                <input id="newProfileName" maxlength="32" placeholder="Ex: CF Pivo alto">
+              </div>
+              <div class="button-row">
+                <button id="saveProfile" type="button">Salvar perfil</button>
+                <button id="deleteProfile" type="button">Excluir salvo</button>
+              </div>
+              <div id="profileStatus" class="muted"></div>
+            </div>
+            <div>
+              <div class="muted" id="profileSummary"></div>
+              <div id="profilePreview" class="profile-preview"></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const positionSelect = $("profilePosition");
+      PROFILE_POSITIONS.forEach((position) => {
+        const item = document.createElement("option");
+        item.value = position;
+        item.textContent = `${position} - ${POSITION_TEMPLATES[position].name}`;
+        positionSelect.appendChild(item);
+      });
+
+      const levelSelect = $("profileLevel");
+      PROFILE_LEVELS.forEach((level) => {
+        const item = document.createElement("option");
+        item.value = level;
+        item.textContent = level;
+        levelSelect.appendChild(item);
+      });
+
+      const customSelect = $("customProfile");
+      if (!customProfiles.length) {
+        const item = document.createElement("option");
+        item.value = "";
+        item.textContent = "Nenhum perfil salvo";
+        customSelect.appendChild(item);
+      } else {
+        customProfiles.forEach((profile, index) => {
+          const item = document.createElement("option");
+          item.value = String(index);
+          item.textContent = profile.name;
+          customSelect.appendChild(item);
+        });
+      }
+
+      const updateMode = () => {
+        const custom = $("profileSource").value === "custom";
+        document.querySelectorAll(".default-only").forEach((node) => node.style.display = custom ? "none" : "grid");
+        document.querySelectorAll(".custom-only").forEach((node) => node.style.display = custom ? "grid" : "none");
+        $("deleteProfile").disabled = !custom || !customProfiles.length;
+        $("applyProfile").disabled = !record;
+        $("rerollProfile").disabled = !record;
+        document.querySelectorAll(".player-only").forEach((node) => node.style.opacity = record ? "1" : "0.45");
+        renderProfilePreview();
+      };
+
+      $("profileSource").addEventListener("change", updateMode);
+      $("profilePosition").addEventListener("change", renderProfilePreview);
+      $("profileLevel").addEventListener("change", renderProfilePreview);
+      $("customProfile").addEventListener("change", renderProfilePreview);
+      $("profileRandom").addEventListener("change", renderProfilePreview);
+      $("applyProfile").addEventListener("click", () => applySelectedProfile(record, false));
+      $("rerollProfile").addEventListener("click", () => applySelectedProfile(record, true));
+      $("saveProfile").addEventListener("click", () => saveDisplayedProfile(record));
+      $("deleteProfile").addEventListener("click", deleteSelectedProfile);
+      updateMode();
+    }
+
+    function renderProfilePreview() {
+      const profile = getBaseSelectedProfile();
+      state.workingProfile = cloneProfile(profile);
+      const preview = $("profilePreview");
+      preview.innerHTML = "";
+      if (!state.workingProfile) {
+        $("profileSummary").textContent = "Nenhum perfil selecionado.";
+        return;
+      }
+      $("profileSummary").textContent = `${state.workingProfile.name} | ${Object.keys(state.workingProfile.ranges).length} atributos com range`;
+      const keys = Object.keys(state.workingProfile.ranges).filter((key) => STAT_BY_KEY[key]);
+      keys.forEach((key) => {
+        const stat = STAT_BY_KEY[key];
+        const range = state.workingProfile.ranges[key];
+        const item = document.createElement("div");
+        item.className = "range-pill";
+        item.innerHTML = `
+          <strong>${escapeHtml(stat[1])}</strong>
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 6px;">
+            <input data-range-key="${escapeHtml(key)}" data-range-side="0" type="number" min="1" max="99" value="${range[0]}">
+            <input data-range-key="${escapeHtml(key)}" data-range-side="1" type="number" min="1" max="99" value="${range[1]}">
+          </div>
+        `;
+        item.querySelectorAll("input").forEach((input) => {
+          input.addEventListener("input", () => {
+            const edited = state.workingProfile;
+            if (!edited?.ranges?.[key]) return;
+            const side = Number(input.dataset.rangeSide);
+            const value = clamp(Number(input.value), 1, 99);
+            edited.ranges[key][side] = value;
+            if (edited.ranges[key][0] > edited.ranges[key][1]) {
+              edited.ranges[key][1 - side] = value;
+            }
+          });
+        });
+        preview.appendChild(item);
+      });
+    }
+
+    function getSelectedProfile() {
+      return cloneProfile(state.workingProfile) || getBaseSelectedProfile();
+    }
+
+    function getBaseSelectedProfile() {
+      if (!$("profileSource")) return null;
+      if ($("profileSource").value === "custom") {
+        const profiles = loadCustomProfiles();
+        return cloneProfile(profiles[Number($("customProfile").value)] || null);
+      }
+      const position = $("profilePosition").value;
+      const level = $("profileLevel").value;
+      return cloneProfile(DEFAULT_PROFILES[position]?.[level] || null);
+    }
+
+    function applySelectedProfile(record, reroll) {
+      const profile = getSelectedProfile();
+      if (!profile) return;
+      const mode = $("profileRandom").value;
+      Object.entries(profile.ranges).forEach(([key, range]) => {
+        const stat = STAT_BY_KEY[key];
+        if (!stat) return;
+        setDisplayStat(record, stat, randomInRange(range[0], range[1], mode));
+      });
+      applyProfilePosition(record, profile);
+      $("profileStatus").textContent = reroll ? "Variacao aplicada ao jogador." : "Perfil aplicado ao jogador.";
+      renderList();
+    }
+
+    function applyProfilePosition(record, profile) {
+      if (profile.regPos !== undefined) setDisplayStat(record, STAT_BY_KEY.regPos, profile.regPos);
+      STATS.positions.forEach((stat) => setRawStat(record, stat, 0));
+      (profile.positions || []).forEach((key) => {
+        if (STAT_BY_KEY[key]) setRawStat(record, STAT_BY_KEY[key], 1);
+      });
+    }
+
+    function saveDisplayedProfile(record) {
+      const name = $("newProfileName").value.trim();
+      if (!name) {
+        $("profileStatus").textContent = "Digite um nome para salvar o perfil.";
+        return;
+      }
+      if (!record) {
+        const selected = getSelectedProfile();
+        if (!selected) {
+          $("profileStatus").textContent = "Selecione um perfil para salvar.";
+          return;
+        }
+        const profile = {
+          ...selected,
+          name,
+          custom: true,
+          ranges: cloneRanges(selected.ranges)
+        };
+        const profiles = loadCustomProfiles();
+        profiles.push(profile);
+        saveCustomProfiles(profiles);
+        $("profileStatus").textContent = "Perfil salvo.";
+        renderProfiles(null);
+        return;
+      }
+      const ranges = {};
+      STATS.abilities.forEach((stat) => {
+        const value = getDisplayStat(record, stat);
+        ranges[stat[0]] = [clamp(value - 3, 1, 99), clamp(value + 3, 1, 99)];
+      });
+      const positionKeys = STATS.positions.filter((stat) => getRawStat(record, stat) === 1).map((stat) => stat[0]);
+      const profile = {
+        name,
+        custom: true,
+        regPos: getDisplayStat(record, STAT_BY_KEY.regPos),
+        positions: positionKeys,
+        ranges
+      };
+      const profiles = loadCustomProfiles();
+      profiles.push(profile);
+      saveCustomProfiles(profiles);
+      $("profileStatus").textContent = "Perfil salvo.";
+      renderProfiles(record);
+    }
+
+    function deleteSelectedProfile() {
+      const profiles = loadCustomProfiles();
+      const index = Number($("customProfile").value);
+      if (!profiles[index]) return;
+      profiles.splice(index, 1);
+      saveCustomProfiles(profiles);
+      renderProfiles(state.records[state.selected]);
+    }
+
+    function renderChecks(record, stats) {
+      const area = $("workarea");
+      area.innerHTML = `<div class="section"><h2>${state.tab === "posicoes" ? "Posicoes" : "Habilidades especiais"}</h2><div id="checks" class="checks"></div></div>`;
+      const checks = $("checks");
+      for (const stat of stats) {
+        const label = document.createElement("label");
+        label.className = "check";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = getRawStat(record, stat) === 1;
+        input.addEventListener("change", () => setRawStat(record, stat, input.checked ? 1 : 0));
+        const span = document.createElement("span");
+        span.textContent = stat[1];
+        label.append(input, span);
+        checks.appendChild(label);
+      }
+    }
+
+    function renderBytes(record) {
+      const area = $("workarea");
+      area.innerHTML = `
+        <div class="section">
+          <h2>Registro bruto</h2>
+          <textarea id="hexBox" class="hex" spellcheck="false"></textarea>
+          <div id="byteStatus" class="muted"></div>
+        </div>
+      `;
+      $("hexBox").value = toHex(record);
+      $("byteStatus").textContent = "124 bytes";
+      $("hexBox").addEventListener("input", (e) => {
+        const parsed = parseHex(e.target.value);
+        if (!parsed) {
+          $("byteStatus").innerHTML = `<span class="warn">Hex invalido</span>`;
+          return;
+        }
+        if (parsed.length !== RECORD_SIZE) {
+          $("byteStatus").innerHTML = `<span class="warn">${parsed.length} bytes</span>`;
+          return;
+        }
+        state.records[state.selected] = parsed;
+        $("byteStatus").textContent = "124 bytes";
+        renderList();
+      });
+    }
+
+    function makeField(record, stat, slider = false) {
+      const wrapper = document.createElement("div");
+      wrapper.className = slider ? "stat-field" : "field";
+      const value = getDisplayStat(record, stat);
+      if (slider) {
+        wrapper.innerHTML = `
+          <div class="stat-top">
+            <div class="stat-name">${escapeHtml(stat[1])}</div>
+            <input class="stat-value" type="number" min="${stat[6]}" max="${stat[7]}">
+          </div>
+          <input type="range" min="${stat[6]}" max="${stat[7]}">
+        `;
+        const number = wrapper.querySelector("input[type='number']");
+        const range = wrapper.querySelector("input[type='range']");
+        number.value = value;
+        range.value = value;
+        const commit = (next) => {
+          const clamped = clamp(Number(next), stat[6], stat[7]);
+          number.value = clamped;
+          range.value = clamped;
+          setDisplayStat(record, stat, clamped);
+        };
+        number.addEventListener("input", () => commit(number.value));
+        range.addEventListener("input", () => commit(range.value));
+      } else {
+        const label = document.createElement("label");
+        label.textContent = stat[1];
+        const input = makeGeneralInput(record, stat, value);
+        wrapper.append(label, input);
+      }
+      return wrapper;
+    }
+
+    function makeGeneralInput(record, stat, value) {
+      if (stat[0] === "foot") return makeSelect(record, stat, FOOT, value);
+      if (stat[0] === "injury") return makeSelect(record, stat, INJURY, value);
+      if (stat[0] === "favSide") return makeSelect(record, stat, SIDE, value);
+      if (stat[0] === "regPos") return makeSelect(record, stat, POSITIONS, value);
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = stat[6];
+      input.max = stat[7];
+      input.value = value;
+      input.addEventListener("input", () => setDisplayStat(record, stat, clamp(Number(input.value), stat[6], stat[7])));
+      return input;
+    }
+
+    function makeSelect(record, stat, options, value) {
+      const select = document.createElement("select");
+      options.forEach((option, index) => {
+        const item = document.createElement("option");
+        item.value = index;
+        item.textContent = option;
+        select.appendChild(item);
+      });
+      select.value = value;
+      select.addEventListener("change", () => setDisplayStat(record, stat, Number(select.value)));
+      return select;
+    }
+
+    function getPlayerName(record) {
+      let end = 32;
+      for (let i = 0; i < 31; i += 2) {
+        if (record[i] === 0 && record[i + 1] === 0) {
+          end = i;
+          break;
+        }
+      }
+      return new TextDecoder("utf-16le").decode(record.slice(0, end));
+    }
+
+    function setPlayerName(record, name) {
+      record.fill(0, 0, 32);
+      const encoded = encodeUtf16Le(name.slice(0, 15));
+      record.set(encoded.slice(0, 30), 0);
+      setRawStat(record, ["callName", "", 0, 1, 0, 65535], 52685);
+      setRawStat(record, ["nameEdited", "", 0, 3, 0, 1], 1);
+      setRawStat(record, ["callEdited", "", 0, 3, 2, 1], 1);
+    }
+
+    function getShirtName(record) {
+      let end = 48;
+      for (let i = 32; i < 48; i++) {
+        if (record[i] === 0) {
+          end = i;
+          break;
+        }
+      }
+      return new TextDecoder("windows-1252").decode(record.slice(32, end));
+    }
+
+    function setShirtName(record, name) {
+      record.fill(0, 32, 48);
+      const clean = name
+        .toUpperCase()
+        .slice(0, 15)
+        .replace(/[^A-Z._ ]/g, " ");
+      const encoded = new TextEncoder().encode(clean);
+      record.set(encoded.slice(0, 15), 32);
+      setRawStat(record, ["shirtEdited", "", 0, 3, 1, 1], 1);
+    }
+
+    function makeShirtName(name) {
+      const parts = name.trim().split(/\s+/).filter(Boolean);
+      const base = parts.length ? parts[parts.length - 1] : name;
+      return base.toUpperCase().replace(/[^A-Z._ ]/g, " ").slice(0, 15);
+    }
+
+    function encodeUtf16Le(text) {
+      const out = new Uint8Array(text.length * 2);
+      for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        out[i * 2] = code & 255;
+        out[i * 2 + 1] = code >>> 8;
+      }
+      return out;
+    }
+
+    function statByteOffset(stat) {
+      return STAT_BASE + stat[3];
+    }
+
+    function getRawStat(record, stat) {
+      const offset = statByteOffset(stat);
+      const word = ((record[offset] || 0) << 8) | (record[offset - 1] || 0);
+      return (word >>> stat[4]) & stat[5];
+    }
+
+    function setRawStat(record, stat, value) {
+      const offset = statByteOffset(stat);
+      let word = ((record[offset] || 0) << 8) | (record[offset - 1] || 0);
+      const clearMask = 0xffff & ~((stat[5] & 0xffff) << stat[4]);
+      word = (word & clearMask) | ((value & stat[5]) << stat[4]);
+      record[offset - 1] = word & 255;
+      record[offset] = (word >>> 8) & 255;
+    }
+
+    function getDisplayStat(record, stat) {
+      const raw = getRawStat(record, stat);
+      if (stat[2] === 1) return raw + 148;
+      if (stat[2] === 2) return raw + 15;
+      if (stat[2] === 5) return raw + 1;
+      return raw;
+    }
+
+    function setDisplayStat(record, stat, value) {
+      let raw = value;
+      if (stat[2] === 1) raw = value - 148;
+      if (stat[2] === 2) raw = value - 15;
+      if (stat[2] === 5) raw = value - 1;
+      setRawStat(record, stat, raw);
+      setRawStat(record, ["abilityEdited", "", 0, 40, 4, 1], 1);
+    }
+
+    function downloadFile() {
+      if (!state.records.length) return;
+      const bytes = new Uint8Array(state.records.length * RECORD_SIZE);
+      state.records.forEach((record, index) => bytes.set(record, index * RECORD_SIZE));
+      const blob = new Blob([bytes], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const suffix = state.fileName.replace(/\.(plrv|tmrv)$/i, "");
+      a.href = url;
+      a.download = `${suffix}_editado.${state.ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function buildDefaultProfiles() {
+      const profiles = {};
+      PROFILE_POSITIONS.forEach((position) => {
+        profiles[position] = {};
+        PROFILE_LEVELS.forEach((level) => {
+          profiles[position][level] = buildProfile(position, level);
+        });
+      });
+      return profiles;
+    }
+
+    function buildProfile(position, level) {
+      const template = POSITION_TEMPLATES[position];
+      const levelRanges = LEVEL_RANGES[level];
+      const ranges = {};
+      const assign = (keys, range) => keys.forEach((key) => ranges[key] = range);
+      const allAbilityKeys = STATS.abilities.map((stat) => stat[0]);
+      assign(allAbilityKeys, levelRanges.support);
+      assign(template.low, levelRanges.low);
+      assign(template.support, levelRanges.support);
+      assign(template.good, levelRanges.good);
+      assign(template.focus, levelRanges.focus);
+      ranges.gkAbil = position === "GK" ? ranges.gkAbil : [1, 30];
+      return {
+        name: `${position} ${level} - ${template.name}`,
+        position,
+        level,
+        regPos: template.regPos,
+        positions: template.positions,
+        ranges
+      };
+    }
+
+    function randomInRange(min, max, mode) {
+      let roll = Math.random();
+      if (mode === "center") roll = (Math.random() + Math.random() + Math.random()) / 3;
+      if (mode === "wild") roll = Math.random() < 0.5 ? Math.pow(Math.random(), 2) : 1 - Math.pow(Math.random(), 2);
+      return Math.round(min + roll * (max - min));
+    }
+
+    function loadCustomProfiles() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(CUSTOM_PROFILE_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveCustomProfiles(profiles) {
+      localStorage.setItem(CUSTOM_PROFILE_KEY, JSON.stringify(profiles));
+    }
+
+    function cloneProfile(profile) {
+      if (!profile) return null;
+      return {
+        ...profile,
+        positions: [...(profile.positions || [])],
+        ranges: cloneRanges(profile.ranges || {})
+      };
+    }
+
+    function cloneRanges(ranges) {
+      return Object.fromEntries(Object.entries(ranges).map(([key, range]) => [key, [...range]]));
+    }
+
+    function toHex(record) {
+      const rows = [];
+      for (let i = 0; i < record.length; i += 16) {
+        const left = i.toString(16).padStart(4, "0").toUpperCase();
+        const hex = Array.from(record.slice(i, i + 16)).map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+        rows.push(`${left}: ${hex}`);
+      }
+      return rows.join("\n");
+    }
+
+    function parseHex(text) {
+      const clean = text
+        .replace(/^[0-9a-fA-F]{4}:/gm, "")
+        .replace(/[^0-9a-fA-F]/g, "");
+      if (clean.length % 2) return null;
+      const bytes = new Uint8Array(clean.length / 2);
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+      }
+      return bytes;
+    }
+
+    function showError(message) {
+      $("workarea").innerHTML = `<div class="empty warn">${escapeHtml(message)}</div>`;
+      $("saveButton").disabled = true;
+    }
+
+    function clamp(value, min, max) {
+      if (!Number.isFinite(value)) return min;
+      return Math.max(min, Math.min(max, Math.round(value)));
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    render();
+  </script>
+</body>
+</html>
